@@ -18,4 +18,4 @@ module load Rtidyverse
 echo "Running on $SLURM_JOB_NODELIST"
 echo "Running in $(pwd)"
 
-Rscript --vanilla farima_asymp_precisions.R 400 400 5 ${SLURM_NTASKS}
+./run_code.sh ${SLURM_NTASKS}
