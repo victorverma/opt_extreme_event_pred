@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --job-name=farima_asymp_precisions
+#SBATCH --mail-user=YOUR_EMAIL_ADDRESS
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+#SBATCH --account=stats_dept1
+#SBATCH --partition=standard
+
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=8
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=32GB
+#SBATCH --time=01:30:00
+
+module load Rtidyverse
+
+echo "Running on $SLURM_JOB_NODELIST"
+echo "Running in $(pwd)"
+
+Rscript --vanilla farima_asymp_precisions.R 400 400 5 ${SLURM_NTASKS}
