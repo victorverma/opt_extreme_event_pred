@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --job-name=quantile_type_impact
+#SBATCH --mail-user=YOUR_EMAIL_ADDRESS
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+#SBATCH --account=stats_dept1
+#SBATCH --partition=standard
+
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=8
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=10GB
+#SBATCH --time=00:06:00
+
+module load Rtidyverse
+
+echo "Running on $SLURM_JOB_NODELIST"
+echo "Running in $(pwd)"
+
+Rscript --vanilla ../simulations.R sim_settings.R ${SLURM_NTASKS}

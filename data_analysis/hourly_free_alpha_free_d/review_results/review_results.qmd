@@ -1,0 +1,456 @@
+---
+title: "Results Review"
+author: "Victor Verma"
+format: html
+toc: true
+number-sections: true
+bibliography: "`r here::here('data_analysis/bibliography.bib')`"
+---
+
+```{r}
+#| echo: !expr -1
+#| label: setup
+#| message: false
+
+here::i_am(
+  "data_analysis/hourly_free_alpha_free_d/review_results/review_results.qmd"
+)
+
+library(grid)
+library(gridExtra)
+library(here)
+library(tidyverse)
+library(xtable)
+
+load("../fit_baseline_mods/baseline_results.RData")
+load(
+  here("data_analysis/hourly_free_alpha_free_d/fit_farima_mods/farima_results.RData")
+)
+load(
+  here("data_analysis/hourly_free_alpha_free_d/fit_lad_ar_mods/lad_ar_results.RData")
+)
+load(
+  here("data_analysis/hourly_free_alpha_free_d/fit_ols_ar_mods/ols_ar_results.RData")
+)
+
+quantile_levels <- unique(baseline_summary$quantile_level)
+```
+
+***REVISE THIS***
+
+## Hill Plots
+
+For the FARIMA models we fit, the innovations are assumed to be iid random variables whose common distribution is in the domain of attraction of an $\alpha$-stable distribution. Fitting one of these models requires estimation of $\alpha$, which was done using the Hill estimator. For every training window, we made a Hill plot; the plots were saved in `../make_hill_plots/hill_plots.pdf`. They show that the estimate $\widehat{\alpha} = 1.25$ given in [@stanislavsky2009fari] is reasonable.
+
+## Baseline Modeling
+
+Check the calibration of the baseline models:
+```{r}
+baseline_summary %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(1 - quantile_level, alarm_rate)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  labs(x = "Desired Alarm Rate", y = "Test Alarm Rate") +
+  theme_bw()
+baseline_summary %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(1 - quantile_level, event_rate)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  labs(x = "Desired Event Rate", y = "Test Event Rate") +
+  theme_bw()
+```
+
+
+## FARIMA Modeling
+
+We fit FARIMA$(0, d, 0)$ models over the training windows defined in `../make_dataset/make_dataset.qmd` using the method outlined in Appendix D of [@burnecki2014algo], which is based on the methods introduced in [@kokoszka1996para] and [@burnecki2013esti]. Plots of the objective functions are in `../fit_farima_mods/obj_fun_plots.pdf`.
+
+Check the calibration of the models:
+```{r}
+farima_summary %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(1 - quantile_level, alarm_rate, group = 1 - quantile_level)) +
+  geom_boxplot() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  labs(x = "Desired Alarm Rate", y = "Test Alarm Rate") +
+  theme_bw()
+farima_summary %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(1 - quantile_level, event_rate, group = 1 - quantile_level)) +
+  geom_boxplot() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  labs(x = "Desired Event Rate", y = "Test Event Rate") +
+  theme_bw()
+```
+
+The evolution of $\hat{\alpha}$ and $\hat{d}$ over time:
+```{r}
+panel1 <- farima_results %>%
+  distinct(first_train_time, alpha_hat) %>%
+  mutate(index = row_number()) %>%
+  ggplot(aes(index, alpha_hat)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1000 * (0:3)) +
+  labs(x = NULL, y = expression(hat(alpha))) +
+  theme_bw()
+panel2 <- farima_results %>%
+  distinct(first_train_time, d_hat) %>%
+  mutate(index = row_number()) %>%
+  ggplot(aes(index, d_hat)) +
+  geom_line() +
+  scale_x_continuous(breaks = 1000 * (0:3)) +
+  labs(x = NULL, y = expression(hat(d))) +
+  theme_bw()
+plot <- arrangeGrob(
+  panel1, panel2,
+  nrow = 1, bottom = "Training Window Start Index (Hours)"
+)
+pdf(file = here("figures/farima_param_estims.pdf"), width = 6, height = 3)
+grid.arrange(plot)
+dev.off()
+ggsave(
+  here("figures/farima_alpha_estims.pdf"),
+  panel1 + xlab("Training Window Start Index (Hours)"),
+  width = 3, height = 3, units = "in", dpi = 300
+)
+ggsave(
+  here("figures/farima_d_estims.pdf"),
+  panel2 + xlab("Training Window Start Index (Hours)"),
+  width = 3, height = 3, units = "in", dpi = 300
+)
+```
+
+```{r}
+grid.arrange(plot)
+```
+
+The distributions of $\hat{\alpha}$ and $\hat{d}$:
+```{r}
+panel1 <- farima_results %>%
+  distinct(first_train_time, alpha_hat) %>%
+  ggplot(aes(alpha_hat)) +
+  geom_histogram() +
+  labs(x = expression(hat(alpha)), y = "Number of Training Windows") +
+  theme_bw()
+panel2 <- farima_results %>%
+  distinct(first_train_time, d_hat) %>%
+  ggplot(aes(d_hat)) +
+  geom_histogram() +
+  labs(x = expression(hat(d)), y = "Number of Training Windows") +
+  theme_bw()
+plot <- arrangeGrob(panel1, panel2, nrow = 1)
+grid.arrange(plot)
+```
+
+The joint distribution of $\hat{\alpha}$ and $\hat{d}$:
+```{r}
+panel1 <- farima_results %>%
+  distinct(first_train_time, alpha_hat, d_hat) %>%
+  ggplot(aes(alpha_hat, d_hat)) +
+  geom_point(alpha = 0.2, shape = "bullet") +
+  labs(x = expression(hat(alpha)), y = expression(hat(d))) +
+  theme_bw()
+panel2 <- farima_results %>%
+  distinct(first_train_time, alpha_hat, d_hat) %>%
+  mutate(index = row_number(), ratio = d_hat / (1 - 1 / alpha_hat)) %>%
+  ggplot(aes(index, ratio)) +
+  geom_line() +
+  labs(
+    x = "First Training Set Index (Hours)",
+    y = expression(frac(hat(d), 1 - 1 / hat(alpha)))
+  ) +
+  theme_bw()
+plot <- arrangeGrob(panel1, panel2, nrow = 1)
+pdf(file = here("figures/farima_param_estims2.pdf"), width = 6, height = 3)
+grid.arrange(plot)
+dev.off()
+ggsave(
+  here("figures/farima_alpha_d_estims.pdf"),
+  panel1,
+  width = 3, height = 3, units = "in", dpi = 300
+)
+```
+
+```{r}
+grid.arrange(plot)
+```
+
+Asymptotic optimal precisions:
+```{r}
+farima_results %>%
+  distinct(first_train_time, alpha_hat, d_hat, lead, asymp_opt_precision) %>%
+  ggplot(aes(first_train_time, asymp_opt_precision)) +
+  facet_wrap(vars(lead), labeller = label_bquote(h == .(lead))) +
+  geom_line() +
+  theme_bw()
+```
+
+Asymptotic optimal precisions for a random training window:
+```{r}
+set.seed(1)
+label_ <- sample(unique(farima_results$label), 1)
+alpha_hat <- with(farima_results, alpha_hat[label == label_][1])
+d_hat <- with(farima_results, d_hat[label == label_][1])
+farima_results %>%
+  distinct(label, lead, asymp_opt_precision) %>%
+  filter(label == label_) %>%
+  ggplot(aes(lead, asymp_opt_precision)) +
+  geom_line() +
+  ylim(c(0, 1)) +
+  labs(
+    x = "h (Hours)", y = "Asymptotic Optimal Precision",
+    title = label_,
+    caption = bquote(
+      list(hat(alpha) == .(signif(alpha_hat, 2)), hat(d) == .(signif(d_hat, 2)))
+    )
+  ) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The output below summarizes the predictive performance of the fitted models.
+```{r}
+farima_summary %>%
+  mutate(quantile_level = as_factor(quantile_level)) %>%
+  ggplot(aes(lead, precision, linetype = quantile_level)) +
+  facet_wrap(
+    vars(ord), labeller = label_bquote("\u2113" == .(ord) * " Hours")
+  ) +
+  geom_line() +
+  labs(x = "h (Hours)", y = "Precision", linetype = "Quantile Level") +
+  theme_bw() +
+  theme(legend.position = "top", strip.text = element_text(size = 12))
+```
+
+## LAD AR Modeling
+
+Check the calibration of the models:
+```{r}
+lad_ar_summary %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(1 - quantile_level, alarm_rate, group = 1 - quantile_level)) +
+  geom_boxplot() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  labs(x = "Desired Alarm Rate", y = "Test Alarm Rate") +
+  theme_bw()
+lad_ar_summary %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(1 - quantile_level, event_rate, group = 1 - quantile_level)) +
+  geom_boxplot() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  labs(x = "Desired Event Rate", y = "Test Event Rate") +
+  theme_bw()
+```
+
+## OLS AR Modeling
+
+Check the calibration of the models:
+```{r}
+ols_ar_summary %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(1 - quantile_level, alarm_rate, group = 1 - quantile_level)) +
+  geom_boxplot() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  labs(x = "Desired Alarm Rate", y = "Test Alarm Rate") +
+  theme_bw()
+ols_ar_summary %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(1 - quantile_level, event_rate, group = 1 - quantile_level)) +
+  geom_boxplot() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  labs(x = "Desired Event Rate", y = "Test Event Rate") +
+  theme_bw()
+```
+
+## AR Modeling
+
+```{r}
+lad_vs_ols <- bind_rows(
+  ols = select(ols_ar_summary, where(is.atomic)),
+  lad = select(lad_ar_summary, where(is.atomic)),
+  .id = "loss_type"
+) %>%
+  filter(ord == 168) %>%
+  pivot_longer(
+    cols = event_rate:tss, names_to = "metric", values_to = "val"
+  ) %>%
+  pivot_wider(
+    id_cols = c(ord, lead, type, flux_threshold, quantile_level, metric),
+    names_from = loss_type, values_from = val
+  )
+```
+
+```{r}
+lad_vs_ols %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  ggplot(aes(ols, lad, color = as_factor(quantile_level))) +
+  facet_wrap(
+    vars(metric),
+    labeller = as_labeller(
+      c(
+        alarm_rate = "Alarm Rate", event_rate = "Event Rate",
+        fpr = "FPR", precision = "Precision", tpr = "TPR", tss = "TSS"
+      )
+    )
+  ) +
+  geom_point(alpha = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_color_manual(
+    values = c(`0.9` = "black", `0.95` = "blue", `0.99` = "orange")
+  ) +
+  guides(
+    color = guide_legend(
+      title = "p", position = "top", override.aes = list(alpha = 1)
+    )
+  ) +
+  labs(
+    x = "OLS Value", y = "LAD Value",
+    caption = "LAD & OLS values are equal along the line"
+  ) +
+  theme_bw()
+```
+
+```{r}
+lad_vs_ols_plot <- lad_vs_ols %>%
+  filter(lead %in% c(1, 6, 12, 18), metric == "alarm_rate") %>%
+  ggplot(aes(ols, lad, color = as_factor(quantile_level))) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_x_continuous(breaks = 1 - quantile_levels) +
+  scale_y_continuous(breaks = 1 - quantile_levels) +
+  scale_color_manual(
+    values = c(`0.9` = "black", `0.95` = "blue", `0.99` = "orange")
+  ) +
+  guides(color = guide_legend(title = "p", position = "top")) +
+  labs(x = "OLS Test Alarm Rate", y = "LAD Test Alarm Rate") +
+  theme_bw()
+
+ggsave(
+  here("figures/lad_vs_ols.pdf"),
+  lad_vs_ols_plot,
+  width = 3, height = 3, units = "in", dpi = 300
+)
+
+lad_vs_ols_plot
+```
+
+
+The output below summarizes the predictive performance of the fitted models.
+```{r}
+ar_summary %>%
+  mutate(quantile_level = as_factor(quantile_level)) %>%
+  ggplot(aes(lead, precision, linetype = quantile_level)) +
+  facet_wrap(
+    vars(ord), labeller = label_bquote("\u2113" == .(ord) * " Hours")
+  ) +
+  geom_line() +
+  labs(x = "h (Hours)", y = "Precision", linetype = "Quantile Level") +
+  theme_bw() +
+  theme(legend.position = "top", strip.text = element_text(size = 12))
+```
+
+## Final Summary
+
+Show the FARIMA and AR results together to make comparison easier:
+```{r}
+bind_rows(FARIMA = farima_summary, AR = ar_summary, .id = "mod") %>%
+  mutate(quantile_level = as_factor(quantile_level)) %>%
+  ggplot(aes(lead, precision, color = mod, linetype = quantile_level)) +
+  facet_wrap(
+    vars(ord), labeller = label_bquote("\u2113" == .(ord) * " Hours")
+  ) +
+  geom_line() +
+  labs(
+    x = "h (Hours)", y = "Precision",
+    color = "Model", linetype = "Quantile Level"
+  ) +
+  theme_bw() +
+  theme(legend.position = "top", strip.text = element_text(size = 12))
+```
+
+
+Make a $\LaTeX$ table with baseline, FARIMA, and OLS AR results for the main text of the paper.
+```{r}
+bind_rows(
+  baseline = filter(baseline_summary, type == "level"),
+  farima = filter(farima_summary, ord == 168, type == "level"),
+  ar = filter(ols_ar_summary, ord == 168, type == "level"),
+  .id = "subset"
+) %>%
+  filter(lead %in% c(1, 6)) %>%
+  select(subset, lead, quantile_level, precision, tss) %>%
+  pivot_wider(
+    id_cols = c(lead, quantile_level),
+    names_from = subset, values_from = c(precision, tss)
+  ) %>%
+  xtable(
+    caption = "A summary of the performance of various predictors. The AR models were fit using OLS. For each pair of $h$ and $p$, the goal was to predict exceedance of the $p$th marginal quantile $h$ steps ahead. In each row, for each metric, the largest value is in boldface. For additional results, including results for AR models fit using LAD, see Table \\ref{tab:expanded_data_analysis_results}.",
+    label = "tab:data_analysis_results",
+    align = "ccc|ccc|ccc",
+    digits = c(rep(1, 2), 2, rep(3, 6))
+  ) %>%
+  print(
+    file = here("paper/data_analysis_results.tex"),
+    hline.after = c(-1, 0, 3, 6),
+    include.rownames = FALSE,
+    include.colnames = FALSE,
+    add.to.row = list(
+      pos = list(0, 0),
+      command = c(
+        "& & \\multicolumn{3}{c|}{Precision} & \\multicolumn{3}{c}{TSS} \\\\\n",
+        "$h$ & $p$ & Baseline & FARIMA & AR(168) & Baseline & FARIMA & AR(168) \\\\\n")
+    )
+  )
+```
+
+```{r}
+bind_rows(
+  baseline = filter(baseline_summary, type == "level"),
+  farima = filter(farima_summary, ord == 168, type == "level"),
+  ols_ar = filter(ols_ar_summary, ord == 168, type == "level"),
+  lad_ar = filter(lad_ar_summary, ord == 168, type == "level"),
+  .id = "subset"
+) %>%
+  filter(lead %in% c(1, 6, 12, 18)) %>%
+  select(subset, lead, quantile_level, precision, tss) %>%
+  pivot_wider(
+    id_cols = c(lead, quantile_level),
+    names_from = subset, values_from = c(precision, tss)
+  ) %>%
+  xtable(
+    caption = "An expanded summary of the performance of various predictors. The order of the AR models was 168. For each pair of $h$ and $p$, the goal was to predict exceedance of the $p$th marginal quantile $h$ steps ahead. In each row, for each metric, the largest value is bolded. The LAD numbers are bigger than the corresponding OLS numbers, with the exception of the LAD precisions for $h \\in \\{6, 12, 18\\}, p = 0.99$ and the LAD TSS values for $h \\in \\{6, 12\\}, p = 0.99$. We believe that the LAD predictor performed better in most cases because it had a higher alarm rate in most cases; see Figure \\ref{fig:lad_vs_ols}.",
+    label = "tab:expanded_data_analysis_results",
+    align = "ccc|cccc|cccc",
+    digits = c(rep(1, 2), 2, rep(3, 8))
+  ) %>%
+  print(
+    file = here("paper/expanded_data_analysis_results.tex"),
+    hline.after = c(-1, 0, 3, 6, 9, 12),
+    include.rownames = FALSE,
+    include.colnames = FALSE,
+    add.to.row = list(
+      pos = list(0, 0),
+      command = c(
+        "& & \\multicolumn{4}{c|}{Precision} & \\multicolumn{4}{c}{TSS} \\\\\n",
+        "$h$ & $p$ & Baseline & FARIMA & OLS AR & LAD AR & Baseline & FARIMA & OLS AR & LAD AR \\\\\n")
+    )
+  )
+```
