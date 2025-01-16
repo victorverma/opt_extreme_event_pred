@@ -1,0 +1,29 @@
+% latex table generated in R 4.4.1 by xtable 1.8-4 package
+% Fri Nov  1 17:24:19 2024
+\begin{table}[ht]
+\centering
+\begin{tabular}{cc|cccc|cccc}
+  \hline
+  & & \multicolumn{4}{c|}{Precision} & \multicolumn{4}{c}{TSS} \\
+ $h$ & $p$ & Baseline & FARIMA & OLS AR & LAD AR & Baseline & FARIMA & OLS AR & LAD AR \\
+ \hline
+ 1 & 0.90 & 0.492 & 0.448 & 0.354 & 0.442 & 0.435 & 0.392 & 0.276 & 0.419 \\ 
+   1 & 0.95 & 0.379 & 0.368 & 0.258 & 0.332 & 0.334 & 0.320 & 0.225 & 0.352 \\ 
+   1 & 0.99 & 0.244 & 0.238 & 0.104 & 0.148 & 0.262 & 0.262 & 0.124 & 0.230 \\ 
+   \hline
+ 6 & 0.90 & 0.308 & 0.339 & 0.284 & 0.302 & 0.256 & 0.298 & 0.215 & 0.293 \\ 
+   6 & 0.95 & 0.189 & 0.213 & 0.150 & 0.157 & 0.173 & 0.198 & 0.138 & 0.174 \\ 
+   6 & 0.99 & 0.049 & 0.119 & 0.125 & 0.076 & 0.040 & 0.115 & 0.162 & 0.131 \\ 
+   \hline
+12 & 0.90 & 0.284 & 0.292 & 0.253 & 0.282 & 0.197 & 0.205 & 0.152 & 0.216 \\ 
+  12 & 0.95 & 0.194 & 0.176 & 0.127 & 0.181 & 0.148 & 0.124 & 0.076 & 0.176 \\ 
+  12 & 0.99 & 0.098 & 0.073 & 0.049 & 0.028 & 0.085 & 0.061 & 0.056 & 0.029 \\ 
+   \hline
+18 & 0.90 & 0.270 & 0.309 & 0.253 & 0.279 & 0.210 & 0.256 & 0.183 & 0.260 \\ 
+  18 & 0.95 & 0.175 & 0.197 & 0.142 & 0.165 & 0.154 & 0.173 & 0.117 & 0.184 \\ 
+  18 & 0.99 & 0.049 & 0.116 & 0.067 & 0.060 & 0.040 & 0.115 & 0.064 & 0.083 \\ 
+   \hline
+\end{tabular}
+\caption{An expanded summary of the performance of various predictors. The order of the AR models was 168. For each pair of $h$ and $p$, the goal was to predict exceedance of the $p$th marginal quantile $h$ steps ahead. In each row, for each metric, the largest value is bolded. The LAD numbers are bigger than the corresponding OLS numbers, with the exception of the LAD precisions for $h \in \{6, 12, 18\}, p = 0.99$ and the LAD TSS values for $h \in \{6, 12\}, p = 0.99$. We believe that the LAD predictor performed better in most cases because it had a higher alarm rate in most cases; see Figure \ref{fig:lad_vs_ols}.} 
+\label{tab:expanded_data_analysis_results}
+\end{table}

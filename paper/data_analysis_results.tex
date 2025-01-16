@@ -1,0 +1,21 @@
+% latex table generated in R 4.4.1 by xtable 1.8-4 package
+% Fri Nov  1 17:24:14 2024
+\begin{table}[ht]
+\centering
+\begin{tabular}{cc|ccc|ccc}
+  \hline
+  & & \multicolumn{3}{c|}{Precision} & \multicolumn{3}{c}{TSS} \\
+ $h$ & $p$ & Baseline & FARIMA & AR(168) & Baseline & FARIMA & AR(168) \\
+ \hline
+ 1 & 0.90 & 0.492 & 0.448 & 0.354 & 0.435 & 0.392 & 0.276 \\ 
+   1 & 0.95 & 0.379 & 0.368 & 0.258 & 0.334 & 0.320 & 0.225 \\ 
+   1 & 0.99 & 0.244 & 0.238 & 0.104 & 0.262 & 0.262 & 0.124 \\ 
+   \hline
+ 6 & 0.90 & 0.308 & 0.339 & 0.284 & 0.256 & 0.298 & 0.215 \\ 
+   6 & 0.95 & 0.189 & 0.213 & 0.150 & 0.173 & 0.198 & 0.138 \\ 
+   6 & 0.99 & 0.049 & 0.119 & 0.125 & 0.040 & 0.115 & 0.162 \\ 
+   \hline
+\end{tabular}
+\caption{A summary of the performance of various predictors. The AR models were fit using OLS. For each pair of $h$ and $p$, the goal was to predict exceedance of the $p$th marginal quantile $h$ steps ahead. In each row, for each metric, the largest value is in boldface. For additional results, including results for AR models fit using LAD, see Table \ref{tab:expanded_data_analysis_results}.} 
+\label{tab:data_analysis_results}
+\end{table}
